@@ -1,0 +1,11 @@
+,amount,customer_name_right,email,transaction_date,transaction_date_year,transaction_date_month_name,transaction_date_day_name,transaction_date_quarter
+0,784,John Smith,john.smith@email.com,2023-01-31,2023,January,Tuesday,1
+1,659,Jane Doe,jane.doe@email.com,2023-02-28,2023,February,Tuesday,1
+2,729,Micheal Jonson,m.johnson@email.com,2023-03-31,2023,March,Friday,1
+3,292,Chris Lee,c.lee@email.com,2023-04-30,2023,April,Sunday,2
+4,935,Katherine Davis,k.davis@email.com,2023-05-31,2023,May,Wednesday,2
+5,863,David Martinez,d.martinez@email.com,2023-06-30,2023,June,Friday,2
+6,807,Sara Brownn,s.brown@email.com,2023-07-31,2023,July,Monday,3
+7,459,James Wilson,j.wilson@email.com,2023-08-31,2023,August,Thursday,3
+8,109,Patricia Taylor,p.taylor@email.com,2023-09-30,2023,September,Saturday,3
+9,823,Robert Miller,r.miller@email.com,2023-10-31,2023,October,Tuesday,4

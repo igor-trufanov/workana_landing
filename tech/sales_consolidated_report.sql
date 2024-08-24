@@ -1,0 +1,127 @@
+WITH REPORT_DATA_CTE AS (
+    SELECT
+        ds1.*
+    FROM DEV.PUBLIC.TRANSACTIONS_DATA_FRAME_AND_CUSTOMERS_DATA_FRAME_MERGED AS ds1
+    WHERE ds1.TRANSACTION_DATE_YEAR = 2023
+), PERFORMERS AS (
+    SELECT
+        'PERFORMING MONTHS RANKED'    AS RECORD_TYPE_DESCRIPTION
+        , 'MPRM'                      AS RECORD_TYPE
+        , TRANSACTION_DATE_MONTH_NAME AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    UNION ALL
+    SELECT
+        'PERFORMING WEEK DAYS RANKED' AS RECORD_TYPE_DESCRIPTION
+        , 'MPRDN'                     AS RECORD_TYPE
+        , TRANSACTION_DATE_DAY_NAME   AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    UNION ALL
+    SELECT
+        'PERFORMING QUARTERS RANKED'             AS RECORD_TYPE_DESCRIPTION
+        , 'MPRQ'                                 AS RECORD_TYPE
+        , CAST(TRANSACTION_DATE_QUARTER AS TEXT) AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+)
+SELECT
+    result.RECORD_TYPE_DESCRIPTION
+    , result.METRIC_VALUE
+    , SUM(result.AMOUNT)                                      AS TOTAL_AMOUNT
+    , COUNT(result.TRANSACTION_ID)                            AS COUNT_TRANSACTIONS
+    , COUNT(DISTINCT result.CUSTOMER_ID)                      AS DISTINCT_COUNT_CUSTOMERS
+    , 0                                                       AS PERFORMER_RANK
+    , SUM(result.AMOUNT) / COUNT(DISTINCT result.CUSTOMER_ID) AS SOLD_PER_CUSTOMER_AVERAGE
+FROM (
+    SELECT
+        'SALES PER YEAR'                             AS RECORD_TYPE_DESCRIPTION
+        , 'SPY'                                      AS RECORD_TYPE
+        , CAST(TRANSACTION_DATE_YEAR AS VARCHAR(32)) AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    UNION ALL
+    SELECT
+        'MONTH''S START SALES' AS RECORD_TYPE_DESCRIPTION
+        , 'IMSS'               AS RECORD_TYPE
+        , 'Yes'                AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    WHERE TRANSACTION_DATE_IS_MONTH_START = 1
+    UNION ALL
+    SELECT
+        'MONTH''S END SALES' AS RECORD_TYPE_DESCRIPTION
+        , 'IMES'             AS RECORD_TYPE
+        , 'Yes'              AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    WHERE TRANSACTION_DATE_IS_MONTH_END = 1
+    UNION ALL
+    SELECT
+        'QUARTER''S START SALES' AS RECORD_TYPE_DESCRIPTION
+        , 'IQSS'                 AS RECORD_TYPE
+        , 'Yes'                  AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    WHERE TRANSACTION_DATE_IS_QUARTER_START = 1
+    UNION ALL
+    SELECT
+        'QUARTER''S END SALES' AS RECORD_TYPE_DESCRIPTION
+        , 'IQES'               AS RECORD_TYPE
+        , 'Yes'                AS METRIC_VALUE
+        , TRANSACTION_ID
+        , AMOUNT
+        , CUSTOMER_ID
+    FROM REPORT_DATA_CTE
+    WHERE TRANSACTION_DATE_IS_QUARTER_END = 1
+) AS result
+GROUP BY 
+    result.RECORD_TYPE_DESCRIPTION
+    , result.RECORD_TYPE
+    , result.METRIC_VALUE
+UNION ALL
+SELECT
+    CONCAT('MOST ', prf.RECORD_TYPE_DESCRIPTION) AS RECORD_TYPE_DESCRIPTION
+    , prf.METRIC_VALUE
+    , SUM(prf.AMOUNT)                                                               AS TOTAL_AMOUNT
+    , COUNT(prf.TRANSACTION_ID)                                                     AS COUNT_TRANSACTIONS
+    , COUNT(DISTINCT prf.CUSTOMER_ID)                                               AS DISTINCT_COUNT_CUSTOMERS
+    , DENSE_RANK() OVER(PARTITION BY prf.RECORD_TYPE ORDER BY SUM(prf.AMOUNT) DESC) AS RANK
+    , SUM(prf.AMOUNT) / COUNT(DISTINCT prf.CUSTOMER_ID)                             AS SOLD_PER_CUSTOMER_AVERAGE
+FROM PERFORMERS AS prf
+GROUP BY 
+    prf.RECORD_TYPE_DESCRIPTION
+    , prf.RECORD_TYPE
+    , prf.METRIC_VALUE
+QUALIFY 
+    RANK <= 2 -- number of top performers
+UNION ALL
+SELECT
+    CONCAT('LEAST ', prf.RECORD_TYPE_DESCRIPTION) AS RECORD_TYPE_DESCRIPTION
+    , prf.METRIC_VALUE
+    , SUM(prf.AMOUNT)                                                              AS TOTAL_AMOUNT
+    , COUNT(prf.TRANSACTION_ID)                                                    AS COUNT_TRANSACTIONS
+    , COUNT(DISTINCT prf.CUSTOMER_ID)                                              AS DISTINCT_COUNT_CUSTOMERS
+    , DENSE_RANK() OVER(PARTITION BY prf.RECORD_TYPE ORDER BY SUM(prf.AMOUNT) ASC) AS RANK
+    , SUM(prf.AMOUNT) / COUNT(DISTINCT prf.CUSTOMER_ID)                            AS SOLD_PER_CUSTOMER_AVERAGE
+FROM PERFORMERS AS prf
+GROUP BY 
+    prf.RECORD_TYPE_DESCRIPTION
+    , prf.RECORD_TYPE
+    , prf.METRIC_VALUE
+QUALIFY 
+    RANK <= 2 -- number of least performers
